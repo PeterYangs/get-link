@@ -8,9 +8,11 @@ import (
 	"fyne.io/fyne/widget"
 	"github.com/PeterYangs/tools"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/dlclark/regexp2"
 	"github.com/flopp/go-findfont"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -23,7 +25,7 @@ var mutex sync.Mutex
 var wait sync.WaitGroup
 
 //最大递归层数（防止内存溢出）
-var maxLv = 50
+var maxLv = 100
 
 //提交按钮
 var submitButton *widget.Button
@@ -62,7 +64,7 @@ func main() {
 
 	stopButton = widget.NewButton("停止", func() {
 
-		//fmt.Println("dd")
+		fmt.Println("dd")
 
 		isStop = true
 
@@ -88,12 +90,14 @@ func main() {
 
 	//log=
 
+	//log.Wrapping
+
 	Scroll = container.NewVScroll(log)
 
 	//Scroll.Resize(fyne.Size{Height: 400,Width:400})
 
 	//设置滚动框的最新尺寸
-	Scroll.SetMinSize(fyne.Size{Height: 400, Width: 400})
+	//Scroll.SetMinSize(fyne.Size{Height:400,Width:400})
 
 	//Scroll.
 
@@ -219,6 +223,14 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 	doc.Find("a").Each(func(i int, selection *goquery.Selection) {
 
+		runtime.Gosched()
+
+		if isStop {
+
+			return
+
+		}
+
 		h, _ := selection.Attr("href")
 
 		//fmt.Println(h)
@@ -229,9 +241,17 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 		}
 
+		if h == "" {
+
+			return
+		}
+
 		findHttp, _ := regexp.MatchString("^"+host, h)
 
 		findLocal, _ := regexp.MatchString(`^/.*`, h)
+
+		findRelative, _ := regexp2.MustCompile(`^(?!http).*`, regexp2.RE2).MatchString(h)
+		findRelative2, _ := regexp2.MustCompile(`^(?!/).*`, regexp2.RE2).MatchString(h)
 
 		if findHttp {
 
@@ -247,13 +267,15 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 				//fmt.Println("存在")
 
+				//return
+
 			} else {
 
 				//fmt.Println(h)
 
 				//log.Add(widget.NewLabel(h))
 
-				log.SetText(log.Text + h + "\n")
+				log.SetText(h + "\n")
 
 				Scroll.ScrollToBottom()
 
@@ -273,6 +295,7 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 			}
 
+			return
 		}
 
 		if findLocal {
@@ -291,7 +314,7 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 				//log.Add(widget.NewLabel(host + h))
 
-				log.SetText(log.Text + host + h + "\n")
+				log.SetText(host + h + "\n")
 
 				Scroll.ScrollToBottom()
 
@@ -304,6 +327,44 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 				mutex.Unlock()
 
 				getUrl(host+h, host, nil, lv+1)
+
+			}
+
+			return
+
+		}
+
+		if findRelative && findRelative2 {
+
+			//fmt.Println(getCh(url)+h)
+
+			mutex.Lock()
+
+			_, ok := list[getCh(url)+h]
+
+			mutex.Unlock()
+
+			if ok {
+
+			} else {
+
+				//fmt.Println(host + h)
+
+				//log.Add(widget.NewLabel(host + h))
+
+				log.SetText(getCh(url) + h + "\n")
+
+				Scroll.ScrollToBottom()
+
+				mutex.Lock()
+
+				list[getCh(url)+h] = ""
+
+				tools.WriteLine(getFileNameWithHost(host), getCh(url)+h)
+
+				mutex.Unlock()
+
+				getUrl(getCh(url)+h, host, nil, lv+1)
 
 			}
 
@@ -333,5 +394,13 @@ func done() {
 	log.SetText("")
 
 	stopButton.Hide()
+
+}
+
+func getCh(s string) string {
+
+	index := strings.LastIndex(s, "/")
+
+	return s[0 : index+1]
 
 }
