@@ -43,7 +43,7 @@ var isDone = false
 var log *widget.Label
 
 //滚动框
-var Scroll *container.Scroll
+//var Scroll *container.Scroll
 
 func main() {
 	a := app.New()
@@ -88,11 +88,13 @@ func main() {
 
 	log = widget.NewLabel("")
 
+	log.Wrapping = fyne.TextTruncate
+
 	//log=
 
 	//log.Wrapping
 
-	Scroll = container.NewVScroll(log)
+	//Scroll = container.NewVScroll(log)
 
 	//Scroll.Resize(fyne.Size{Height: 400,Width:400})
 
@@ -106,7 +108,7 @@ func main() {
 		input,
 		submitButton,
 		stopButton,
-		Scroll,
+		log,
 	))
 
 	//c.A
@@ -275,9 +277,9 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 				//log.Add(widget.NewLabel(h))
 
-				log.SetText(h + "\n")
+				log.SetText(h)
 
-				Scroll.ScrollToBottom()
+				//Scroll.ScrollToBottom()
 
 				//getUrl(h,host)
 
@@ -314,9 +316,9 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 				//log.Add(widget.NewLabel(host + h))
 
-				log.SetText(host + h + "\n")
+				log.SetText(host + h)
 
-				Scroll.ScrollToBottom()
+				//Scroll.ScrollToBottom()
 
 				mutex.Lock()
 
@@ -352,9 +354,9 @@ func getUrl(url string, host string, wait *sync.WaitGroup, lv int) {
 
 				//log.Add(widget.NewLabel(host + h))
 
-				log.SetText(getCh(url) + h + "\n")
+				log.SetText(getCh(url) + h)
 
-				Scroll.ScrollToBottom()
+				//Scroll.ScrollToBottom()
 
 				mutex.Lock()
 
